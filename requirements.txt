@@ -16,3 +16,7 @@ neo4j
 
 pypdf
 python-docx
+
+langchain-anthropic
+langchain-huggingface
+sentence-transformers
