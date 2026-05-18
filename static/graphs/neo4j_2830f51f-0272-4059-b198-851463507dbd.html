@@ -1,0 +1,492 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1200px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"font": {"color": "white"}, "group": "IngestedDocument", "id": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "shape": "dot", "title": "IngestedDocument"}, {"font": {"color": "white"}, "group": "Document", "id": "1b3b4e81cf32ea2789a7265956e346f3", "label": "1b3b4e81cf32ea2789a7265956e346f3", "shape": "dot", "title": "Document"}, {"font": {"color": "white"}, "group": "Document", "id": "23631632d2e72228cf5a67f49efdcebf", "label": "23631632d2e72228cf5a67f49efdcebf", "shape": "dot", "title": "Document"}, {"font": {"color": "white"}, "group": "Document", "id": "43a7533966af09ec80533fc192511e3b", "label": "43a7533966af09ec80533fc192511e3b", "shape": "dot", "title": "Document"}, {"font": {"color": "white"}, "group": "Document", "id": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "e3a83969312e54b0d3bc8b2dcc290c88", "shape": "dot", "title": "Document"}, {"font": {"color": "white"}, "group": "Document", "id": "6c8e4406a442945f28e8f8906033775d", "label": "6c8e4406a442945f28e8f8906033775d", "shape": "dot", "title": "Document"}, {"font": {"color": "white"}, "group": "Person", "id": "Raghul G", "label": "Raghul G", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Company", "id": "Iim Ranchi", "label": "Iim Ranchi", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "Company", "id": "Dr. Mahalingam College Of Engineering, Anna University", "label": "Dr. Mahalingam College Of Engineering, Anna University", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Mba, Marketing \u0026 Strategy", "label": "Mba, Marketing \u0026 Strategy", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "B.E. Mechanical Engineering", "label": "B.E. Mechanical Engineering", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Ai/Ml Product Engineering", "label": "Ai/Ml Product Engineering", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Agentic Ai Systems", "label": "Agentic Ai Systems", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Rag Pipelines", "label": "Rag Pipelines", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Llm-Based Applications", "label": "Llm-Based Applications", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Gcp", "label": "Gcp", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Vertex Ai", "label": "Vertex Ai", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Gemini", "label": "Gemini", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Multi-Agent Workflows", "label": "Multi-Agent Workflows", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Mcp-Based Orchestration", "label": "Mcp-Based Orchestration", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Genai Products", "label": "Genai Products", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Ranchi, Jharkhand", "label": "Ranchi, Jharkhand", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Coimbatore, Tn", "label": "Coimbatore, Tn", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Gold Medallist", "label": "Gold Medallist", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Director\u0027S Merit List", "label": "Director\u0027S Merit List", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "B2B", "label": "B2B", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "B2C", "label": "B2C", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Company", "id": "Dr. Mahalingam College Of Engineering", "label": "Dr. Mahalingam College Of Engineering", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "Company", "id": "Anna University", "label": "Anna University", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Genai", "label": "Genai", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Llms", "label": "Llms", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Prompt Engineering", "label": "Prompt Engineering", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Agentic Ai", "label": "Agentic Ai", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Rag Systems", "label": "Rag Systems", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Openai Api", "label": "Openai Api", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Automation Workflows", "label": "Automation Workflows", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Langchain", "label": "Langchain", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Langgraph", "label": "Langgraph", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Company", "id": "Programming.Com", "label": "Programming.Com", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "Person", "id": "Ai Ml Engineer", "label": "Ai Ml Engineer", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Coimbatore", "label": "Coimbatore", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Bangalore", "label": "Bangalore", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Tamil Nadu", "label": "Tamil Nadu", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Multi-Agent Orchestration", "label": "Multi-Agent Orchestration", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Vector Databases", "label": "Vector Databases", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Semantic Search", "label": "Semantic Search", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Company", "id": "Circleback", "label": "Circleback", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Remote", "label": "Remote", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Mcp Gateway", "label": "Mcp Gateway", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Fastapi", "label": "Fastapi", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Bm25", "label": "Bm25", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Next.Js", "label": "Next.Js", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Supabase", "label": "Supabase", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Postgresql", "label": "Postgresql", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Genai-Powered Campus Marketplace", "label": "Genai-Powered Campus Marketplace", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Metric", "id": "Information Retrieval Accuracy", "label": "Information Retrieval Accuracy", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Enterprise Knowledge Base Query Accuracy", "label": "Enterprise Knowledge Base Query Accuracy", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Daily Api Calls", "label": "Daily Api Calls", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Uptime", "label": "Uptime", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Manual Support Load Reduction", "label": "Manual Support Load Reduction", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Active Users", "label": "Active Users", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Agentic Workflows", "label": "Agentic Workflows", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Multi-Agent Pipelines", "label": "Multi-Agent Pipelines", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Iim Campuses", "label": "Iim Campuses", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Llm-Assisted Listing Generation", "label": "Llm-Assisted Listing Generation", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Generative Ai Prompts", "label": "Generative Ai Prompts", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Conversational Discovery Assistant", "label": "Conversational Discovery Assistant", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Ai-Generated Descriptions", "label": "Ai-Generated Descriptions", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Gtm Strategy", "label": "Gtm Strategy", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Company", "id": "Valeo India Pvt. Ltd.", "label": "Valeo India Pvt. Ltd.", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "Company", "id": "Valeo Japan", "label": "Valeo Japan", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "Company", "id": "Valeo France", "label": "Valeo France", "shape": "dot", "title": "Company"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Ml Pipelines", "label": "Ml Pipelines", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Xgboost", "label": "Xgboost", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Random Forest", "label": "Random Forest", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Logistic Regression", "label": "Logistic Regression", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Metric", "id": "Churn Prediction", "label": "Churn Prediction", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Conversion Prediction", "label": "Conversion Prediction", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "Metric", "id": "Clv Prediction", "label": "Clv Prediction", "shape": "dot", "title": "Metric"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Streamlit-Based Crm Intelligence Dashboard", "label": "Streamlit-Based Crm Intelligence Dashboard", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "__Entity__", "id": "Lead Scoring Dashboard", "label": "Lead Scoring Dashboard", "shape": "dot", "title": "__Entity__"}, {"font": {"color": "white"}, "group": "Person", "id": "Senior Design And Development Engineer", "label": "Senior Design And Development Engineer", "shape": "dot", "title": "Person"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "1b3b4e81cf32ea2789a7265956e346f3"}, {"arrows": "to", "from": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "23631632d2e72228cf5a67f49efdcebf"}, {"arrows": "to", "from": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "43a7533966af09ec80533fc192511e3b"}, {"arrows": "to", "from": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "e3a83969312e54b0d3bc8b2dcc290c88"}, {"arrows": "to", "from": "Raghul G_AI Product Manager_IIM Ranchi.pdf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "6c8e4406a442945f28e8f8906033775d"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Raghul G"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Iim Ranchi"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Dr. Mahalingam College Of Engineering, Anna University"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Mba, Marketing \u0026 Strategy"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "B.E. Mechanical Engineering"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Ai/Ml Product Engineering"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Agentic Ai Systems"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Rag Pipelines"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Llm-Based Applications"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Gcp"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Vertex Ai"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Gemini"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Multi-Agent Workflows"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Mcp-Based Orchestration"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Genai Products"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Ranchi, Jharkhand"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Coimbatore, Tn"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Gold Medallist"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "Director\u0027S Merit List"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "B2B"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "MENTIONS", "title": "MENTIONS", "to": "B2C"}, {"arrows": "to", "from": "1b3b4e81cf32ea2789a7265956e346f3", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "Raghul G_AI Product Manager_IIM Ranchi.pdf"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "B.E. Mechanical Engineering"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Dr. Mahalingam College Of Engineering"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Anna University"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Genai"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Llms"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Prompt Engineering"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Agentic Ai"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Rag Systems"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Openai Api"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Automation Workflows"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Langchain"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Langgraph"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Programming.Com"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Ai Ml Engineer"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Coimbatore"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Bangalore"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Tamil Nadu"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Multi-Agent Orchestration"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Vector Databases"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "MENTIONS", "title": "MENTIONS", "to": "Semantic Search"}, {"arrows": "to", "from": "23631632d2e72228cf5a67f49efdcebf", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "Raghul G_AI Product Manager_IIM Ranchi.pdf"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Rag Pipelines"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Gcp"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Vertex Ai"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Gemini"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Langgraph"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Programming.Com"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Ai Ml Engineer"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Bangalore"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Semantic Search"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Circleback"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Remote"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Mcp Gateway"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Fastapi"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Bm25"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Next.Js"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Supabase"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Postgresql"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Genai-Powered Campus Marketplace"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Information Retrieval Accuracy"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Enterprise Knowledge Base Query Accuracy"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Daily Api Calls"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Uptime"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Manual Support Load Reduction"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Active Users"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Agentic Workflows"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Multi-Agent Pipelines"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "MENTIONS", "title": "MENTIONS", "to": "Iim Campuses"}, {"arrows": "to", "from": "43a7533966af09ec80533fc192511e3b", "label": "HAS_CHUNK", "title": "HAS_CHUNK", "to": "Raghul G_AI Product Manager_IIM Ranchi.pdf"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Semantic Search"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Next.Js"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Supabase"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Postgresql"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Genai-Powered Campus Marketplace"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Iim Campuses"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Llm-Assisted Listing Generation"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Generative Ai Prompts"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Conversational Discovery Assistant"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Ai-Generated Descriptions"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Gtm Strategy"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Valeo India Pvt. Ltd."}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Valeo Japan"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Valeo France"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Ml Pipelines"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Xgboost"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Random Forest"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Logistic Regression"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Churn Prediction"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Conversion Prediction"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Clv Prediction"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Streamlit-Based Crm Intelligence Dashboard"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Lead Scoring Dashboard"}, {"arrows": "to", "from": "e3a83969312e54b0d3bc8b2dcc290c88", "label": "MENTIONS", "title": "MENTIONS", "to": "Senior Design And Development Engineer"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"forceAtlas2Based": {"gravitationalConstant": -100, "centralGravity": 0.01, "springLength": 200, "springConstant": 0.08}, "minVelocity": 0.75, "solver": "forceAtlas2Based"}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

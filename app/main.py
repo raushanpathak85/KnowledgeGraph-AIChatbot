@@ -32,12 +32,12 @@ def startup_event():
 
 
 app.include_router(uploaded_files_router)
-app.include_router(reports_portal_router)
-app.include_router(query_router)
+#app.include_router(reports_portal_router)
+#app.include_router(query_router)
 
  
-app.include_router(graph_visualization_router)
-app.include_router(neo4j_graph_visualization_router)
+#app.include_router(graph_visualization_router)
+#app.include_router(neo4j_graph_visualization_router)
 
 
 @app.get("/")

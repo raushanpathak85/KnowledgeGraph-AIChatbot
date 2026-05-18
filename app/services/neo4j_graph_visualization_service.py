@@ -16,11 +16,12 @@ driver = GraphDatabase.driver(
 
 def fetch_neo4j_graph(
     cypher: str = "MATCH (s)-[r]->(t) RETURN s,r,t LIMIT 50",
+    params: Dict[str, Any] | None = None,
 ) -> List[Dict[str, Any]]:
     records = []
 
     with driver.session(database=settings.NEO4J_DATABASE) as session:
-        result = session.run(cypher)
+        result = session.run(cypher, params or {})
 
         for record in result:
             s = record["s"]
@@ -57,10 +58,11 @@ def fetch_neo4j_graph(
 def generate_neo4j_graph_html(
     cypher: str = "MATCH (s)-[r]->(t) RETURN s,r,t LIMIT 50",
     output_dir: str = "static/graphs",
+    params: Dict[str, Any] | None = None,
 ):
     os.makedirs(output_dir, exist_ok=True)
 
-    graph_records = fetch_neo4j_graph(cypher)
+    graph_records = fetch_neo4j_graph(cypher, params=params)
 
     graph_id = f"neo4j_{uuid.uuid4()}"
     output_file = os.path.join(output_dir, f"{graph_id}.html")

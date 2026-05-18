@@ -13,8 +13,9 @@ def enrich_documents_metadata(
     title: str,
     source_url: str | None = None,
     metadata: Dict[str, Any] | None = None,
+    document_id: str | None = None,
 ) -> List[Document]:
-    document_id = str(uuid.uuid4())
+    document_id = document_id or str(uuid.uuid4())
     metadata = metadata or {}
 
     enriched_docs = []
@@ -40,6 +41,7 @@ def ingest_documents(
     title: str,
     source_url: str | None = None,
     metadata: Dict[str, Any] | None = None,
+    document_id: str | None = None,
 ):
     enriched_docs = enrich_documents_metadata(
         documents=documents,
@@ -47,6 +49,7 @@ def ingest_documents(
         title=title,
         source_url=source_url,
         metadata=metadata,
+        document_id=document_id,
     )
 
     chunks = split_documents(enriched_docs)
@@ -57,6 +60,8 @@ def ingest_documents(
 
     return {
         "status": "ingested",
+        "document_id": enriched_docs[0].metadata.get("document_id") if enriched_docs else document_id,
+        "file_hash": metadata.get("file_hash") if metadata else None,
         "title": title,
         "source_type": source_type,
         "chunks_created": len(chunks),
