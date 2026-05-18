@@ -1,0 +1,492 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1200px;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"font": {"color": "white"}, "group": "Degree", "id": "Llb", "label": "Llb", "shape": "dot", "title": "Degree"}, {"font": {"color": "white"}, "group": "Technology", "id": "Postgresql", "label": "Postgresql", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Project", "id": "Genai Analytics Assistant", "label": "Genai Analytics Assistant", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Technology", "id": "Django Rest", "label": "Django Rest", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Python", "label": "Python", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Hierarchical Clustering", "label": "Hierarchical Clustering", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Concept", "id": "Naive Bayes", "label": "Naive Bayes", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Technology", "id": "Sql", "label": "Sql", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Fastapi", "label": "Fastapi", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Sendgrid", "label": "Sendgrid", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Neural Networks", "label": "Neural Networks", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Organization", "id": "Imt Bhopal", "label": "Imt Bhopal", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Location", "id": "Delhi, Ncr", "label": "Delhi, Ncr", "shape": "dot", "title": "Location"}, {"font": {"color": "white"}, "group": "Organization", "id": "Great Learning", "label": "Great Learning", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Technology", "id": "Jwt Authentication", "label": "Jwt Authentication", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Organization", "id": "Learnbay", "label": "Learnbay", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Concept", "id": "Knn", "label": "Knn", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Technology", "id": "Seaborn", "label": "Seaborn", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Organization", "id": "Rajju Bhaiya Allahabad University", "label": "Rajju Bhaiya Allahabad University", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Technology", "id": "Oracle", "label": "Oracle", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Nlp", "label": "Nlp", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Certificate", "id": "Python Fundamentals For Beginner", "label": "Python Fundamentals For Beginner", "shape": "dot", "title": "Certificate"}, {"font": {"color": "white"}, "group": "Project", "id": "Healthcare Sepsis \u0026 Septic Shock Prediction", "label": "Healthcare Sepsis \u0026 Septic Shock Prediction", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Role", "id": "Ai Engineer", "label": "Ai Engineer", "shape": "dot", "title": "Role"}, {"font": {"color": "white"}, "group": "Concept", "id": "K-Means Clustering", "label": "K-Means Clustering", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Degree", "id": "Mba (Human Resource \u0026 Finance)", "label": "Mba (Human Resource \u0026 Finance)", "shape": "dot", "title": "Degree"}, {"font": {"color": "white"}, "group": "Technology", "id": "Langchain", "label": "Langchain", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Organization", "id": "Prismapixel Innovation", "label": "Prismapixel Innovation", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Technology", "id": "Html", "label": "Html", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Langgraph", "label": "Langgraph", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Rbac", "label": "Rbac", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Logistic Regression", "label": "Logistic Regression", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Location", "id": "Sitamarhi", "label": "Sitamarhi", "shape": "dot", "title": "Location"}, {"font": {"color": "white"}, "group": "Technology", "id": "Numpy", "label": "Numpy", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Project", "id": "Secana", "label": "Secana", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Organization", "id": "Tmbu Bhagalpur University", "label": "Tmbu Bhagalpur University", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Project", "id": "Publix", "label": "Publix", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Technology", "id": "Optuna", "label": "Optuna", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Role", "id": "Associate Scientist", "label": "Associate Scientist", "shape": "dot", "title": "Role"}, {"font": {"color": "white"}, "group": "Organization", "id": "Skillup", "label": "Skillup", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Project", "id": "Learning Management System (Lms)", "label": "Learning Management System (Lms)", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Technology", "id": "Alembic", "label": "Alembic", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Jenkins", "label": "Jenkins", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Cloudinary", "label": "Cloudinary", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Mongodb", "label": "Mongodb", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Svm", "label": "Svm", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Concept", "id": "Pca", "label": "Pca", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Certificate", "id": "Python For Data Science", "label": "Python For Data Science", "shape": "dot", "title": "Certificate"}, {"font": {"color": "white"}, "group": "Project", "id": "Usa Traffic Accident Data Analysis", "label": "Usa Traffic Accident Data Analysis", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Technology", "id": "Scikit-Learn", "label": "Scikit-Learn", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Random Forest", "label": "Random Forest", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Certificate", "id": "Machine Learning", "label": "Machine Learning", "shape": "dot", "title": "Certificate"}, {"font": {"color": "white"}, "group": "Technology", "id": "Chromadb", "label": "Chromadb", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Concept", "id": "Linear Regression", "label": "Linear Regression", "shape": "dot", "title": "Concept"}, {"font": {"color": "white"}, "group": "Technology", "id": "Pandas", "label": "Pandas", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Rag Pipelines", "label": "Rag Pipelines", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Git", "label": "Git", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Person", "id": "Raushan Pathak", "label": "Raushan Pathak", "shape": "dot", "title": "Person"}, {"font": {"color": "white"}, "group": "Technology", "id": "Mysql", "label": "Mysql", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Css", "label": "Css", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Javascript", "label": "Javascript", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Openai", "label": "Openai", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Organization", "id": "Meditech Innovation", "label": "Meditech Innovation", "shape": "dot", "title": "Organization"}, {"font": {"color": "white"}, "group": "Technology", "id": "Flask", "label": "Flask", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Llamaindex", "label": "Llamaindex", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Degree", "id": "Bachelor Of Science (Cs)", "label": "Bachelor Of Science (Cs)", "shape": "dot", "title": "Degree"}, {"font": {"color": "white"}, "group": "Technology", "id": "Matplotlib", "label": "Matplotlib", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Certificate", "id": "Python Libraries For Data Science", "label": "Python Libraries For Data Science", "shape": "dot", "title": "Certificate"}, {"font": {"color": "white"}, "group": "Technology", "id": "Django", "label": "Django", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Sqlmodel", "label": "Sqlmodel", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Technology", "id": "Sqlalchemy", "label": "Sqlalchemy", "shape": "dot", "title": "Technology"}, {"font": {"color": "white"}, "group": "Role", "id": "Data Scientist", "label": "Data Scientist", "shape": "dot", "title": "Role"}, {"font": {"color": "white"}, "group": "Location", "id": "Bihar", "label": "Bihar", "shape": "dot", "title": "Location"}, {"font": {"color": "white"}, "group": "Project", "id": "Welding Management System", "label": "Welding Management System", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Project", "id": "Tanzania Water Crises", "label": "Tanzania Water Crises", "shape": "dot", "title": "Project"}, {"font": {"color": "white"}, "group": "Certificate", "id": "Ibm Certified Data Scientist And Ai", "label": "Ibm Certified Data Scientist And Ai", "shape": "dot", "title": "Certificate"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Raushan Pathak", "label": "works_at", "to": "Prismapixel Innovation"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_role", "to": "Ai Engineer"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_at", "to": "Meditech Innovation"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_role", "to": "Data Scientist"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_role", "to": "Associate Scientist"}, {"arrows": "to", "from": "Prismapixel Innovation", "label": "located_in", "to": "Delhi, Ncr"}, {"arrows": "to", "from": "Meditech Innovation", "label": "located_in", "to": "Delhi, Ncr"}, {"arrows": "to", "from": "Raushan Pathak", "label": "holds_degree", "to": "Bachelor Of Science (Cs)"}, {"arrows": "to", "from": "Raushan Pathak", "label": "holds_degree", "to": "Mba (Human Resource \u0026 Finance)"}, {"arrows": "to", "from": "Raushan Pathak", "label": "holds_degree", "to": "Llb"}, {"arrows": "to", "from": "Bachelor Of Science (Cs)", "label": "awarded_by", "to": "Tmbu Bhagalpur University"}, {"arrows": "to", "from": "Mba (Human Resource \u0026 Finance)", "label": "awarded_by", "to": "Imt Bhopal"}, {"arrows": "to", "from": "Llb", "label": "awarded_by", "to": "Rajju Bhaiya Allahabad University"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_certification", "to": "Ibm Certified Data Scientist And Ai"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_certification", "to": "Python Fundamentals For Beginner"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_certification", "to": "Python For Data Science"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_certification", "to": "Python Libraries For Data Science"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_certification", "to": "Machine Learning"}, {"arrows": "to", "from": "Python Fundamentals For Beginner", "label": "issued_by", "to": "Great Learning"}, {"arrows": "to", "from": "Python For Data Science", "label": "issued_by", "to": "Learnbay"}, {"arrows": "to", "from": "Python Libraries For Data Science", "label": "issued_by", "to": "Skillup"}, {"arrows": "to", "from": "Machine Learning", "label": "issued_by", "to": "Skillup"}, {"arrows": "to", "from": "Raushan Pathak", "label": "resides_in", "to": "Sitamarhi"}, {"arrows": "to", "from": "Sitamarhi", "label": "located_in", "to": "Bihar"}, {"arrows": "to", "from": "Prismapixel Innovation", "label": "owns_project", "to": "Genai Analytics Assistant"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Genai Analytics Assistant"}, {"arrows": "to", "from": "Meditech Innovation", "label": "owns_project", "to": "Publix"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Publix"}, {"arrows": "to", "from": "Meditech Innovation", "label": "owns_project", "to": "Learning Management System (Lms)"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Learning Management System (Lms)"}, {"arrows": "to", "from": "Meditech Innovation", "label": "owns_project", "to": "Secana"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Secana"}, {"arrows": "to", "from": "Meditech Innovation", "label": "owns_project", "to": "Tanzania Water Crises"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Tanzania Water Crises"}, {"arrows": "to", "from": "Prismapixel Innovation", "label": "owns_project", "to": "Usa Traffic Accident Data Analysis"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Usa Traffic Accident Data Analysis"}, {"arrows": "to", "from": "Prismapixel Innovation", "label": "owns_project", "to": "Welding Management System"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Welding Management System"}, {"arrows": "to", "from": "Prismapixel Innovation", "label": "owns_project", "to": "Healthcare Sepsis \u0026 Septic Shock Prediction"}, {"arrows": "to", "from": "Raushan Pathak", "label": "worked_on", "to": "Healthcare Sepsis \u0026 Septic Shock Prediction"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Python"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Sql"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Langchain"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Langgraph"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Rag Pipelines"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Pandas"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Numpy"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Fastapi"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Django Rest"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Postgresql"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Sqlmodel"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Sqlalchemy"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Alembic"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Jwt Authentication"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Rbac"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Cloudinary"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Sendgrid"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Scikit-Learn"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Matplotlib"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Seaborn"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Optuna"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Chromadb"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Mongodb"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Mysql"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Oracle"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Git"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Jenkins"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Django"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Flask"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Llamaindex"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Html"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Css"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Javascript"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Openai"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Linear Regression"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Logistic Regression"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Svm"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Knn"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Naive Bayes"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Random Forest"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "K-Means Clustering"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Hierarchical Clustering"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Pca"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Neural Networks"}, {"arrows": "to", "from": "Raushan Pathak", "label": "has_skill", "to": "Nlp"}, {"arrows": "to", "from": "Genai Analytics Assistant", "label": "uses", "to": "Langchain"}, {"arrows": "to", "from": "Genai Analytics Assistant", "label": "uses", "to": "Langgraph"}, {"arrows": "to", "from": "Genai Analytics Assistant", "label": "uses", "to": "Rag Pipelines"}, {"arrows": "to", "from": "Genai Analytics Assistant", "label": "uses", "to": "Fastapi"}, {"arrows": "to", "from": "Genai Analytics Assistant", "label": "uses", "to": "Python"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Fastapi"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Postgresql"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Sqlmodel"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Sqlalchemy"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Alembic"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Jwt Authentication"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Cloudinary"}, {"arrows": "to", "from": "Learning Management System (Lms)", "label": "uses", "to": "Sendgrid"}, {"arrows": "to", "from": "Welding Management System", "label": "uses", "to": "Fastapi"}, {"arrows": "to", "from": "Welding Management System", "label": "uses", "to": "Postgresql"}, {"arrows": "to", "from": "Welding Management System", "label": "uses", "to": "Cloudinary"}, {"arrows": "to", "from": "Welding Management System", "label": "uses", "to": "Jwt Authentication"}, {"arrows": "to", "from": "Tanzania Water Crises", "label": "uses", "to": "Scikit-Learn"}, {"arrows": "to", "from": "Tanzania Water Crises", "label": "uses", "to": "Optuna"}, {"arrows": "to", "from": "Tanzania Water Crises", "label": "uses", "to": "Matplotlib"}, {"arrows": "to", "from": "Tanzania Water Crises", "label": "uses", "to": "Seaborn"}, {"arrows": "to", "from": "Usa Traffic Accident Data Analysis", "label": "uses", "to": "Scikit-Learn"}, {"arrows": "to", "from": "Usa Traffic Accident Data Analysis", "label": "uses", "to": "Matplotlib"}, {"arrows": "to", "from": "Usa Traffic Accident Data Analysis", "label": "uses", "to": "Seaborn"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"forceAtlas2Based": {"gravitationalConstant": -100, "centralGravity": 0.01, "springLength": 200, "springConstant": 0.08}, "minVelocity": 0.75, "solver": "forceAtlas2Based"}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
