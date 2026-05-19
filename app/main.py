@@ -8,6 +8,7 @@ from app.routes.query import router as query_router
 from app.services.graph_service import create_graph_constraints
 from app.routes.graph_visualization import router as graph_visualization_router
 from app.routes.neo4j_graph_visualization import router as neo4j_graph_visualization_router
+from app.routes.file_browser import router as file_browser_router
 
 app = FastAPI(
     title="LangChain KG-RAG Backend",
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.on_event("startup")
 def startup_event():
@@ -32,12 +34,13 @@ def startup_event():
 
 
 app.include_router(uploaded_files_router)
-#app.include_router(reports_portal_router)
-#app.include_router(query_router)
+app.include_router(reports_portal_router)
+app.include_router(query_router)
 
  
-#app.include_router(graph_visualization_router)
-#app.include_router(neo4j_graph_visualization_router)
+app.include_router(graph_visualization_router)
+app.include_router(neo4j_graph_visualization_router)
+app.include_router(file_browser_router)
 
 
 @app.get("/")
